@@ -1,5 +1,5 @@
 import React from "react";
-import { search, update } from "../BooksAPI";
+import { search, update, getAll } from "../BooksAPI";
 import "./Home-Page.styles.css";
 
 class SearchPage extends React.Component {
@@ -8,7 +8,8 @@ class SearchPage extends React.Component {
     this.state = {
       query: "",
       books: "",
-      areBooksFetched: false
+      areBooksFetched: false,
+      booksForShelfs: []
     };
   }
 
@@ -17,7 +18,8 @@ class SearchPage extends React.Component {
       query: e.target.value
     });
     if (this.state.query) {
-      search(this.state.query).then(fetchedBooks => {
+      search(this.state.query).then(async fetchedBooks => {
+        await this.getAllTheBooks();
         this.setState({
           books: fetchedBooks,
           areBooksFetched: true
@@ -39,8 +41,89 @@ class SearchPage extends React.Component {
   };
 
   displayTheBooks = () => {
+    console.log("out", this.state.books);
     if (this.state.books.length > 1) {
       return this.state.books.map(book => {
+        const commonBook = this.state.booksForShelfs.find(
+          b => b.id === book.id
+        );
+        if (commonBook) {
+          console.log("heher", commonBook);
+          return (
+            <li key={commonBook.id}>
+              <div className="book">
+                <div className="book-top">
+                  <div
+                    className="book-cover"
+                    style={{
+                      width: 128,
+                      height: 188,
+                      backgroundImage: `url(${commonBook.imageLinks &&
+                        commonBook.imageLinks.smallThumbnail})`
+                    }}
+                  ></div>
+                  <div className="book-shelf-changer">
+                    {commonBook.shelf === "currentlyReading" ? (
+                      <select onChange={e => this.onShelfSelect(book, e)}>
+                        <option value="move" disabled>
+                          Move to...
+                        </option>
+                        <option value="currentlyReading" defaultValue>
+                          Currently Reading
+                        </option>
+                        <option value="none"> None</option>
+
+                        <option value="wantToRead">Want to Read</option>
+                        <option value="read">Read</option>
+                      </select>
+                    ) : commonBook.shelf === "wantToRead" ? (
+                      <select onChange={e => this.onShelfSelect(book, e)}>
+                        <option value="move" disabled>
+                          Move to...
+                        </option>
+                        <option value="wantToRead">Want to Read</option>
+                        <option value="none"> None</option>
+                        <option value="currentlyReading" defaultValue>
+                          Currently Reading
+                        </option>
+                        <option value="read">Read</option>
+                      </select>
+                    ) : commonBook.shelf === "read" ? (
+                      <select onChange={e => this.onShelfSelect(book, e)}>
+                        <option value="move" disabled>
+                          Move to...
+                        </option>
+                        <option value="read">Read</option>
+                        <option value="none"> None</option>
+                        <option value="currentlyReading" defaultValue>
+                          Currently Reading
+                        </option>
+                        <option value="wantToRead">Want to Read</option>
+                      </select>
+                    ) : (
+                      <select onChange={e => this.onShelfSelect(book, e)}>
+                        <option value="move" disabled>
+                          Move to...
+                        </option>
+                        <option value="none"> None</option>
+                        <option value="currentlyReading" defaultValue>
+                          Currently Reading
+                        </option>
+                        <option value="wantToRead">Want to Read</option>
+                        <option value="read">Read</option>
+                      </select>
+                    )}
+                  </div>
+                </div>
+                <div className="book-title">{book.title}</div>
+                <div className="book-authors">
+                  {book.authors && book.authors}
+                </div>
+                <div className="book-authors"> {commonBook.shelf} </div>
+              </div>
+            </li>
+          );
+        }
         return (
           <li key={book.id}>
             <div className="book">
@@ -70,12 +153,35 @@ class SearchPage extends React.Component {
               </div>
               <div className="book-title">{book.title}</div>
               <div className="book-authors">{book.authors && book.authors}</div>
-              <div> {book.shelf} </div>
+              <div className="book-authors">
+                {" "}
+                {book.shelf ? book.shelf : "none"}{" "}
+              </div>
             </div>
           </li>
         );
       });
     }
+  };
+
+  getAllTheBooks = () => {
+    getAll()
+      .then(res => {
+        return res.map(book => {
+          if (book.shelf !== "none") {
+            return this.state.booksForShelfs.push(book);
+          }
+          return book;
+        });
+      })
+      .then(res => {
+        return this.setState({
+          didComponentMounted: true
+        });
+      })
+      .catch(err => {
+        console.log(err.message);
+      });
   };
 
   render() {

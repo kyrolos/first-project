@@ -13,7 +13,8 @@ class HomePage extends React.Component {
         read: [],
         none: []
       },
-      didComponentMounted: false
+      didComponentMounted: false,
+      anyShelfUpdated: false
     };
   }
   /**
@@ -24,6 +25,10 @@ class HomePage extends React.Component {
    */
 
   componentDidMount() {
+    this.getAllTheBooks();
+  }
+
+  getAllTheBooks = () => {
     getAll()
       .then(res => {
         return res.map(book => {
@@ -45,7 +50,7 @@ class HomePage extends React.Component {
       .catch(err => {
         console.log(err.message);
       });
-  }
+  };
 
   getWantToReadBooks = shelf => {
     if (shelf === "currentlyReading") {
@@ -150,14 +155,27 @@ class HomePage extends React.Component {
   };
 
   onShelfSelect = (book, event) => {
-    if (event.target.value === book.shelf) {
+    const newShelf = event.target.value;
+    if (newShelf === book.shelf) {
       return;
     }
-    update(book, event.target.value);
+    update(book, newShelf).then(async res => {
+      book.shelf = newShelf;
+      await this.setState({
+        shelfs: {
+          currentlyReading: [],
+          wantToRead: [],
+          read: [],
+          none: []
+        }
+      });
+      this.getAllTheBooks();
+    });
   };
 
   render() {
     const { history } = this.props;
+    console.log(this.state);
     return (
       <div className="app">
         <div className="list-books-title">
